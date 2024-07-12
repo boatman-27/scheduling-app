@@ -1,5 +1,5 @@
 const BASE_URL = "http://localhost:3000/";
-const BASE_URL2 = "https://scheduling-app-backend.vercel.app/account";
+const BASE_URL2 = "";
 
 export async function login(loginData) {
   try {

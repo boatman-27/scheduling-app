@@ -10,7 +10,7 @@ const TEMPLATE_ID = process.env.TEMPLATE_ID;
 const API_KEY = process.env.API_KEY;
 
 const BASE_URL = "http://localhost:3000/";
-const BASE_URL2 = "https://scheduling-app-backend.vercel.app/account";
+const BASE_URL2 = "";
 
 export async function bookMeeting(meetingData, user) {
   // sendMeetingInfo(meetingData, user);
