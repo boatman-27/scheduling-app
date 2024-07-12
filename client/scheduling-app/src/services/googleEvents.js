@@ -1,12 +1,12 @@
 import CustomStore from "devextreme/cjs/data/custom_store.js";
-import { calculateEndingTime, toISO8601 } from "../helpers/availableTimes";
+import { calculateEndingTime } from "../helpers/availableTimes";
+import dotenv from "dotenv";
+dotenv.config();
 
 const getCalendarEvents = async (_, requestOptions) => {
-  const GOOGLE_CALENDAR_URL =
-    "https://www.googleapis.com/calendar/v3/calendars/";
-  const CALENDAR_ID =
-    "e1be86b12488bfe7946f6355e1ea1a6862f81aec2c7bbfbd47e6cdf65b8e9226@group.calendar.google.com";
-  const PUBLIC_KEY = "AIzaSyCqqupLuKZmoJCqGMInY39sGToxEG_TU7w";
+  const GOOGLE_CALENDAR_URL = process.env.CALENDAR_URL;
+  const CALENDAR_ID = process.env.CALENDAR_ID;
+  const PUBLIC_KEY = process.env.PUBLIC_KEY;
   const dataUrl = [
     GOOGLE_CALENDAR_URL,
     CALENDAR_ID,
