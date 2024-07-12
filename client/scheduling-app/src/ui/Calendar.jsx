@@ -38,7 +38,7 @@ function Calendar({ onGetMeetingDate }) {
           left: "prev,next today",
           right: "dayGridMonth,timeGridWeek,listWeek",
         }}
-        googleCalendarApiKey="AIzaSyCqqupLuKZmoJCqGMInY39sGToxEG_TU7w"
+        googleCalendarApiKey="<KEY>"
         weekNumberCalculation="ISO"
         weekNumbers={true}
         firstDay={0} // Start the week from Sunday
@@ -52,8 +52,7 @@ function Calendar({ onGetMeetingDate }) {
         }}
         hiddenDays={[5, 6]}
         events={{
-          googleCalendarId:
-            "e1be86b12488bfe7946f6355e1ea1a6862f81aec2c7bbfbd47e6cdf65b8e9226@group.calendar.google.com",
+          googleCalendarId: "<EMAIL>",
         }}
         editable={true}
         eventClick={(arg) => {
