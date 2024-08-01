@@ -9,21 +9,11 @@ import session from "express-session";
 import { Strategy } from "passport-local";
 import pgSession from "connect-pg-simple";
 
+dotenv.config();
+
 const app = express();
 const port = 3000;
 const saltRounds = 10;
-
-const corsOptions = {
-  origin: ["http://localhost:5173", "https://meetingswithme.vercel.app"],
-  credentials: true,
-};
-
-app.use(cors(corsOptions));
-
-dotenv.config();
-app.use(express.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-const pgSessionStore = pgSession(session);
 
 const { Pool } = pg;
 
@@ -37,7 +27,20 @@ const pool = new Pool({
   // database: process.env.PG_DATABASE,
 });
 
-pool;
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
+app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+const pgSessionStore = pgSession(session);
+
+const corsOptions = {
+  origin: ["http://localhost:5173", "https://meetingswithme.vercel.app"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 
 app.use(
   session({
@@ -46,9 +49,12 @@ app.use(
       tablename: "session",
     }),
     secret: process.env.SESSION_SECRET,
-    resave: false,
+    resave: true,
     saveUninitialized: true,
     cookie: {
+      secure: process.env.NODE_ENV === "development" ? false : true,
+      httpOnly: process.env.NODE_ENV === "development" ? false : true,
+      sameSite: process.env.NODE_ENV === "development" ? "" : "none",
       maxAge: 1000 * 60 * 30,
     },
   })
@@ -56,6 +62,7 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(passport.authenticate("session"));
 
 const calculateEndingTime = (time, duration) => {
   const [hours, minutes] = time.split(":").map(Number);
@@ -98,12 +105,6 @@ app.get("/auth", (req, res) => {
 });
 
 app.post("/account/login", (req, res, next) => {
-  console.log(req.body);
-  console.log(req.url);
-  const fullUrl = `${req.protocol}://${req.get("host")}${req.originalUrl}`;
-  const referer = req.get("Referer") || req.get("Origin");
-  console.log(`Request Origin: ${referer}`);
-  console.log(`Request URL: ${fullUrl}`);
   passport.authenticate("local", (err, user, info) => {
     if (err) {
       console.error(err);
@@ -111,7 +112,7 @@ app.post("/account/login", (req, res, next) => {
     }
     if (!user) {
       return res
-        .status(401)
+        .status(400)
         .json({ message: "Invalid email or password", info: info });
     }
     req.login(user, (err) => {
@@ -220,45 +221,47 @@ app.get("/meetings/booked/:studentId", checkAuth, async (req, res) => {
 });
 
 passport.use(
-  "local",
-  new Strategy(async function verify(username, password, cb) {
+  new Strategy(async function verify(username, password, done) {
     try {
-      const result = await pool.query(
-        "SELECT * FROM users WHERE email = ($1)",
+      const { rows } = await pool.query(
+        "SELECT * FROM users WHERE email = $1",
         [username]
       );
-      if (result.rows.length > 0) {
-        const user = result.rows[0];
+      if (rows.length === 0) {
+        return done(null, false, { message: "Incorrect email." });
+      } else {
+        const user = rows[0];
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (isValidPassword) {
-          cb(null, user);
+          done(null, user);
         } else {
-          cb(null, false);
+          done(null, false, { message: "Incorrect password." });
         }
-      } else {
-        cb("User not found");
       }
     } catch (error) {
       console.log(error);
+      done(error);
     }
   })
 );
 
-passport.serializeUser((user, cb) => {
-  console.log("ser", user);
-  cb(null, user.id);
+passport.serializeUser((user, done) => {
+  done(null, user.id);
 });
 
-passport.deserializeUser(async (id, cb) => {
-  console.log("des", id);
+passport.deserializeUser(async (id, done) => {
   try {
-    const result = await pool.query("SELECT * FROM users WHERE id = ($1)", [
+    const { rows } = await pool.query("SELECT * FROM users WHERE id = $1", [
       id,
     ]);
-    console.log("des", result.rows[0]);
-    cb(null, result.rows[0]);
+    if (rows.length > 0) {
+      done(null, rows[0]);
+    } else {
+      done(new Error("User not found"), null);
+    }
   } catch (error) {
     console.log(error);
+    done(error, null);
   }
 });
 
